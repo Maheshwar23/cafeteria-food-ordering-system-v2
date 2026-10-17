@@ -201,6 +201,7 @@ export const App: React.FC = () => {
           order={placedOrder}
           onTrackOrder={handleTrackOrder}
           onBackToMenu={handleBackToMenu}
+          customerEmail={loggedInUser}
         />
       )}
 
@@ -210,6 +211,7 @@ export const App: React.FC = () => {
           <OrderTracking
             orderId={placedOrder.orderId}
             onBackToMenu={handleBackToMenu}
+            customerEmail={loggedInUser}
           />
         </main>
       )}

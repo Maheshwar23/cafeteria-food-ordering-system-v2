@@ -1473,7 +1473,47 @@ body {
 .confirmation-actions {
   padding: 1.25rem 1.5rem;
   display: flex;
+  flex-direction: column;
   gap: 0.75rem;
+}
+
+.confirmation-action-subrow {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn-download-invoice {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.8125rem 1rem;
+  background: linear-gradient(135deg, #fff7ed, #ffedd5);
+  color: #c2410c;
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 6px rgba(249, 115, 22, 0.15);
+}
+
+.btn-download-invoice:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.3);
+}
+
+.btn-download-invoice:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-download-invoice:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }
 
 .btn-track-order {
@@ -1529,6 +1569,38 @@ body {
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-sm);
+}
+
+.tracking-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.btn-tracking-invoice {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #c2410c;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-tracking-invoice:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.btn-tracking-invoice:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-tracking-back {

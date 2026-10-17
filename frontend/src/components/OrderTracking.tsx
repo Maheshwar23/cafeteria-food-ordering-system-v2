@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { OrderResponse, ORDER_STATUSES, OrderStatus } from '../types/food';
 import { getOrder, updateOrderStatus } from '../services/api';
+import { printInvoice } from '../utils/invoiceGenerator';
 
 interface OrderTrackingProps {
   orderId: number;
   onBackToMenu: () => void;
+  customerEmail?: string | null;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -37,6 +39,7 @@ function formatLabel(raw: string | null | undefined): string {
 export const OrderTracking: React.FC<OrderTrackingProps> = ({
   orderId,
   onBackToMenu,
+  customerEmail,
 }) => {
   const [order, setOrder] = useState<OrderResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -101,16 +104,28 @@ export const OrderTracking: React.FC<OrderTrackingProps> = ({
         <h2 className="tracking-heading">
           Order Tracking — <span className="tracking-order-id">#{orderId}</span>
         </h2>
-        <button
-          type="button"
-          className="btn-refresh"
-          onClick={fetchOrder}
-          disabled={loading}
-          id="tracking-refresh-btn"
-          title="Refresh order status"
-        >
-          {loading ? '↻' : '🔄'} Refresh
-        </button>
+        <div className="tracking-top-actions">
+          <button
+            type="button"
+            className="btn-tracking-invoice"
+            onClick={() => order && printInvoice(order, customerEmail)}
+            disabled={loading || !order}
+            id="tracking-invoice-btn"
+            title="Download order invoice (PDF)"
+          >
+            📄 Invoice (PDF)
+          </button>
+          <button
+            type="button"
+            className="btn-refresh"
+            onClick={fetchOrder}
+            disabled={loading}
+            id="tracking-refresh-btn"
+            title="Refresh order status"
+          >
+            {loading ? '↻' : '🔄'} Refresh
+          </button>
+        </div>
       </div>
 
       {/* Loading */}

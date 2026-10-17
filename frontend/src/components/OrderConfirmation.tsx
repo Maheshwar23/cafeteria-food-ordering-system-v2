@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PlaceOrderResponse } from '../types/food';
+import { printInvoice } from '../utils/invoiceGenerator';
 
 interface OrderConfirmationProps {
   order: PlaceOrderResponse;
   onTrackOrder: () => void;
   onBackToMenu: () => void;
+  customerEmail?: string | null;
 }
 
 function formatLabel(raw: string | null | undefined): string {
@@ -20,7 +22,15 @@ export const OrderConfirmation: React.FC<OrderConfirmationProps> = ({
   order,
   onTrackOrder,
   onBackToMenu,
+  customerEmail,
 }) => {
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadInvoice = () => {
+    setDownloading(true);
+    printInvoice(order, customerEmail);
+    setTimeout(() => setDownloading(false), 2000);
+  };
   // Calculate estimated subtotal from item data
   const itemsSubtotal = (order.items ?? []).reduce(
     (sum, item) => sum + item.subtotal,
@@ -148,20 +158,31 @@ export const OrderConfirmation: React.FC<OrderConfirmationProps> = ({
         <div className="confirmation-actions">
           <button
             type="button"
-            className="btn-track-order"
-            onClick={onTrackOrder}
-            id="track-order-btn"
+            className="btn-download-invoice"
+            onClick={handleDownloadInvoice}
+            id="download-invoice-btn"
+            disabled={downloading}
           >
-            📍 Track Order
+            {downloading ? '⏳ Preparing Invoice…' : '📄 Download Invoice (PDF)'}
           </button>
-          <button
-            type="button"
-            className="btn-back-to-menu"
-            onClick={onBackToMenu}
-            id="back-to-menu-btn"
-          >
-            ← Back to Menu
-          </button>
+          <div className="confirmation-action-subrow">
+            <button
+              type="button"
+              className="btn-track-order"
+              onClick={onTrackOrder}
+              id="track-order-btn"
+            >
+              📍 Track Order
+            </button>
+            <button
+              type="button"
+              className="btn-back-to-menu"
+              onClick={onBackToMenu}
+              id="back-to-menu-btn"
+            >
+              ← Back to Menu
+            </button>
+          </div>
         </div>
       </div>
     </div>
