@@ -333,6 +333,34 @@ class OrderControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/orders creates order with items from new categories (Sandwiches & Wraps, Indian Meals)")
+    void testCreateOrderWithNewCategoriesSuccess() throws Exception {
+        String requestJson = """
+                {
+                    "items": [
+                        { "category": "Sandwiches & Wraps", "name": "Veg Club Sandwich", "quantity": 1 },
+                        { "category": "Indian Meals", "name": "Veg Dum Biryani", "quantity": 1 }
+                    ],
+                    "address": "Floor 3, Innovation Lab",
+                    "specialInstructions": "Extra spicy biryani",
+                    "deliveryOption": "Delivery",
+                    "paymentOption": "Card",
+                    "discountStrategy": "NONE"
+                }
+                """;
+
+        mockMvc.perform(post("/api/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.orderId", notNullValue()))
+                .andExpect(jsonPath("$.finalPrice", is(330.0))) // 140 + 190 = 330
+                .andExpect(jsonPath("$.status", is("PLACED")))
+                .andExpect(jsonPath("$.items", hasSize(2)));
+    }
+
+    @Test
     @DisplayName("CORS allows origin http://localhost:5173 on /api/orders")
     void testCorsHeadersOnOrders() throws Exception {
         mockMvc.perform(get("/api/orders/1")

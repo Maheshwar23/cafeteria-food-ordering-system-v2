@@ -19,7 +19,11 @@ import com.cafeteria.factory.BeverageFactory;
 import com.cafeteria.factory.BurgerFactory;
 import com.cafeteria.factory.DessertFactory;
 import com.cafeteria.factory.FoodFactory;
+import com.cafeteria.factory.IndianMealFactory;
+import com.cafeteria.factory.PastaFactory;
 import com.cafeteria.factory.PizzaFactory;
+import com.cafeteria.factory.SandwichFactory;
+import com.cafeteria.factory.SnackFactory;
 import com.cafeteria.model.FoodItem;
 import com.cafeteria.model.Order;
 import com.cafeteria.model.OrderStatus;
@@ -245,14 +249,18 @@ public class OrderService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category is required");
         }
         return switch (category.trim().toLowerCase()) {
-            case "burger"   -> new BurgerFactory();
-            case "pizza"    -> new PizzaFactory();
+            case "burger" -> new BurgerFactory();
+            case "pizza" -> new PizzaFactory();
             case "beverage" -> new BeverageFactory();
-            case "dessert"  -> new DessertFactory();
+            case "dessert" -> new DessertFactory();
+            case "sandwiches & wraps", "sandwiches and wraps", "sandwich" -> new SandwichFactory();
+            case "snacks & sides", "snacks and sides", "snack" -> new SnackFactory();
+            case "pasta" -> new PastaFactory();
+            case "indian meals", "indian meal" -> new IndianMealFactory();
             default -> throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Unknown food category: \"" + category
-                            + "\". Valid categories: Burger, Pizza, Beverage, Dessert"
+                            + "\". Valid categories: Burger, Pizza, Sandwiches & Wraps, Snacks & Sides, Pasta, Indian Meals, Beverage, Dessert"
             );
         };
     }

@@ -31,15 +31,7 @@ public class FoodItemController {
 
         List<FoodItemEntity> items;
         if (category != null && !category.isBlank()) {
-            String trimmed = category.trim();
-            items = foodItemRepository.findByCategory(trimmed);
-            if (items.isEmpty() && trimmed.length() > 1) {
-                String capitalized = Character.toUpperCase(trimmed.charAt(0)) + trimmed.substring(1).toLowerCase();
-                List<FoodItemEntity> fallback = foodItemRepository.findByCategory(capitalized);
-                if (!fallback.isEmpty()) {
-                    items = fallback;
-                }
-            }
+            items = foodItemRepository.findByCategoryIgnoreCase(category.trim());
         } else {
             items = foodItemRepository.findAll();
         }

@@ -12,6 +12,10 @@ const CATEGORY_ICONS: Record<Category, string> = {
   All: '✨',
   Burger: '🍔',
   Pizza: '🍕',
+  'Sandwiches & Wraps': '🥪',
+  'Snacks & Sides': '🍟',
+  Pasta: '🍝',
+  'Indian Meals': '🍛',
   Beverage: '🥤',
   Dessert: '🍰',
 };
@@ -27,10 +31,11 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
       <div className="category-scroll">
         {categories.map((cat) => {
           const isSelected = selectedCategory === cat;
+          const slugId = cat.toLowerCase().replace(/[^a-z0-9]+/g, '-');
           return (
             <button
               key={cat}
-              id={`category-btn-${cat.toLowerCase()}`}
+              id={`category-btn-${slugId}`}
               className={`category-pill ${isSelected ? 'active' : ''}`}
               onClick={() => onSelectCategory(cat)}
               disabled={disabled}

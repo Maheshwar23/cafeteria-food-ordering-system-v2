@@ -72,6 +72,38 @@ class FoodItemControllerTest {
     }
 
     @Test
+    @DisplayName("GET /api/food-items?category=sandwiches%20%26%20wraps filters new category case-insensitively")
+    void testGetFoodItemsByNewCategory() throws Exception {
+        mockMvc.perform(get("/api/food-items")
+                        .param("category", "sandwiches & wraps")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))))
+                .andExpect(jsonPath("$[0].category", is("Sandwiches & Wraps")));
+    }
+
+    @Test
+    @DisplayName("GET /api/food-items?category=pasta filters pasta items")
+    void testGetFoodItemsByPasta() throws Exception {
+        mockMvc.perform(get("/api/food-items")
+                        .param("category", "pasta")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))))
+                .andExpect(jsonPath("$[0].category", is("Pasta")));
+    }
+
+    @Test
+    @DisplayName("GET /api/food-items?category=NonExistentCategory returns 200 with empty list")
+    void testGetFoodItemsByUnknownCategory() throws Exception {
+        mockMvc.perform(get("/api/food-items")
+                        .param("category", "NonExistentCategory")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    @Test
     @DisplayName("CORS allows origin http://localhost:5173 on /api/food-items")
     void testCorsHeaders() throws Exception {
         mockMvc.perform(get("/api/food-items")

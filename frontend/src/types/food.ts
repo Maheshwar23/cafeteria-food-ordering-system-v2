@@ -10,7 +10,16 @@ export interface CartItem {
   quantity: number;
 }
 
-export type Category = 'All' | 'Burger' | 'Pizza' | 'Beverage' | 'Dessert';
+export type Category =
+  | 'All'
+  | 'Burger'
+  | 'Pizza'
+  | 'Sandwiches & Wraps'
+  | 'Snacks & Sides'
+  | 'Pasta'
+  | 'Indian Meals'
+  | 'Beverage'
+  | 'Dessert';
 
 // ─── Order types (mirrors backend DTOs exactly) ───────────────────────────────
 

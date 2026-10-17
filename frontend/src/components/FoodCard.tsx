@@ -1,5 +1,6 @@
 import React from 'react';
 import { FoodItem } from '../types/food';
+import { getFoodImageUrl, DEFAULT_FOOD_IMAGE } from '../utils/imageMap';
 
 interface FoodCardProps {
   item: FoodItem;
@@ -10,6 +11,10 @@ interface FoodCardProps {
 const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
   Burger: { bg: '#ffedd5', text: '#c2410c' },
   Pizza: { bg: '#fee2e2', text: '#b91c1c' },
+  'Sandwiches & Wraps': { bg: '#fef3c7', text: '#b45309' },
+  'Snacks & Sides': { bg: '#ffedd5', text: '#c2410c' },
+  Pasta: { bg: '#e0f2fe', text: '#0284c7' },
+  'Indian Meals': { bg: '#fef9c3', text: '#a16207' },
   Beverage: { bg: '#e0f2fe', text: '#0369a1' },
   Dessert: { bg: '#fce7f3', text: '#be185d' },
 };
@@ -17,6 +22,10 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
 const CATEGORY_ICONS: Record<string, string> = {
   Burger: '🍔',
   Pizza: '🍕',
+  'Sandwiches & Wraps': '🥪',
+  'Snacks & Sides': '🍟',
+  Pasta: '🍝',
+  'Indian Meals': '🍛',
   Beverage: '🥤',
   Dessert: '🍰',
 };
@@ -28,6 +37,13 @@ export const FoodCard: React.FC<FoodCardProps> = ({
 }) => {
   const color = CATEGORY_COLORS[item.category] || { bg: '#f3f4f6', text: '#374151' };
   const icon = CATEGORY_ICONS[item.category] || '🍽️';
+
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const target = e.currentTarget;
+    if (target.src !== window.location.origin + DEFAULT_FOOD_IMAGE) {
+      target.src = DEFAULT_FOOD_IMAGE;
+    }
+  };
 
   return (
     <article className="food-card" id={`food-card-${item.id}`}>
@@ -43,6 +59,16 @@ export const FoodCard: React.FC<FoodCardProps> = ({
             {cartQuantity} in cart
           </span>
         )}
+      </div>
+
+      <div className="food-card-image-wrap">
+        <img
+          src={getFoodImageUrl(item.name)}
+          alt={item.name}
+          className="food-card-image"
+          loading="lazy"
+          onError={handleImageError}
+        />
       </div>
 
       <div className="food-card-body">

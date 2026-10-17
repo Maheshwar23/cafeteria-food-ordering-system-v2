@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FoodItem, CartItem, Category, PlaceOrderRequest, PlaceOrderResponse } from './types/food';
 import { fetchFoodItems, placeOrder } from './services/api';
 import { Header } from './components/Header';
+import { LoginPage } from './components/LoginPage';
 import { CategoryFilter } from './components/CategoryFilter';
 import { FoodCard } from './components/FoodCard';
 import { Cart } from './components/Cart';
@@ -10,12 +11,38 @@ import { OrderConfirmation } from './components/OrderConfirmation';
 import { OrderTracking } from './components/OrderTracking';
 import './index.css';
 
-const CATEGORIES: Category[] = ['All', 'Burger', 'Pizza', 'Beverage', 'Dessert'];
+const CATEGORIES: Category[] = [
+  'All',
+  'Burger',
+  'Pizza',
+  'Sandwiches & Wraps',
+  'Snacks & Sides',
+  'Pasta',
+  'Indian Meals',
+  'Beverage',
+  'Dessert',
+];
 
 /** Top-level view the app is currently showing */
 type AppView = 'menu' | 'checkout' | 'confirmation' | 'tracking';
 
 export const App: React.FC = () => {
+  // ── Auth state ─────────────────────────────────────────────────────────────
+  const [loggedInUser, setLoggedInUser] = useState<string | null>(null);
+
+  const handleLoginSuccess = (email: string) => {
+    setLoggedInUser(email);
+  };
+
+  const handleLogout = () => {
+    // Clear all session-specific state when the user signs out.
+    setLoggedInUser(null);
+    setCartItems([]);
+    setPlacedOrder(null);
+    setSubmitError(null);
+    setAppView('menu');
+  };
+
   // ── Menu / cart state ──────────────────────────────────────────────────────
   const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category>('All');
@@ -141,12 +168,20 @@ export const App: React.FC = () => {
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
+
+  // Show login page when not authenticated
+  if (!loggedInUser) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="app-shell">
       <Header
         cartItemCount={totalCartCount}
         onCartToggle={() => setIsMobileCartOpen((prev) => !prev)}
         isCartOpen={isMobileCartOpen}
+        userEmail={loggedInUser}
+        onLogout={handleLogout}
       />
 
       {/* ── Checkout overlay ─────────────────────────────────── */}
