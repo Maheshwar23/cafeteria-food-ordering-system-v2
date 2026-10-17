@@ -95,3 +95,13 @@ export async function updateOrderStatus(
     body: JSON.stringify({ status }),
   });
 }
+
+/**
+ * GET /api/orders?customerEmail=...
+ * Returns all orders for a specific customer, newest first.
+ * Demo note: only orders placed with a customerEmail will be included.
+ */
+export async function fetchOrdersByEmail(customerEmail: string): Promise<OrderResponse[]> {
+  if (!customerEmail || !customerEmail.trim()) return [];
+  return apiFetch<OrderResponse[]>(`/orders?customerEmail=${encodeURIComponent(customerEmail.trim())}`);
+}

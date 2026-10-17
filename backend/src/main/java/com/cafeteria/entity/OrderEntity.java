@@ -52,6 +52,10 @@ public class OrderEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    /** Optional — links this order to a specific student (demo scoping for order history). */
+    @Column(name = "customer_email")
+    private String customerEmail;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItemEntity> items = new ArrayList<>();
 
@@ -166,5 +170,13 @@ public class OrderEntity {
 
     public void setItems(List<OrderItemEntity> items) {
         this.items = items;
+    }
+
+    public String getCustomerEmail() {
+        return customerEmail;
+    }
+
+    public void setCustomerEmail(String customerEmail) {
+        this.customerEmail = customerEmail;
     }
 }

@@ -26,6 +26,12 @@ public class PlaceOrderRequest {
      */
     private String discountStrategy = "NONE";
 
+    /**
+     * Optional email of the authenticated customer placing the order.
+     * Used to link orders to a specific student for order history.
+     */
+    private String customerEmail;
+
     public PlaceOrderRequest() {
     }
 
@@ -85,5 +91,13 @@ public class PlaceOrderRequest {
 
     public void setDiscountStrategy(String discountStrategy) {
         this.discountStrategy = discountStrategy;
+    }
+
+    public String getCustomerEmail() {
+        return customerEmail;
+    }
+
+    public void setCustomerEmail(String customerEmail) {
+        this.customerEmail = customerEmail;
     }
 }

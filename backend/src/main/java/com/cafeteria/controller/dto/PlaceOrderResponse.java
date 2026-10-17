@@ -16,6 +16,7 @@ public class PlaceOrderResponse {
     private String address;
     private String deliveryOption;
     private String paymentOption;
+    private String customerEmail;
     private List<OrderItemResponse> items;
 
     public PlaceOrderResponse() {
@@ -30,6 +31,13 @@ public class PlaceOrderResponse {
                               double finalPrice, String status, String transactionId,
                               String address, String deliveryOption, String paymentOption,
                               List<OrderItemResponse> items) {
+        this(orderId, success, message, finalPrice, status, transactionId, address, deliveryOption, paymentOption, null, items);
+    }
+
+    public PlaceOrderResponse(Long orderId, boolean success, String message,
+                              double finalPrice, String status, String transactionId,
+                              String address, String deliveryOption, String paymentOption,
+                              String customerEmail, List<OrderItemResponse> items) {
         this.orderId = orderId;
         this.success = success;
         this.message = message;
@@ -39,6 +47,7 @@ public class PlaceOrderResponse {
         this.address = address;
         this.deliveryOption = deliveryOption;
         this.paymentOption = paymentOption;
+        this.customerEmail = customerEmail;
         this.items = items;
     }
 
@@ -120,5 +129,13 @@ public class PlaceOrderResponse {
 
     public void setItems(List<OrderItemResponse> items) {
         this.items = items;
+    }
+
+    public String getCustomerEmail() {
+        return customerEmail;
+    }
+
+    public void setCustomerEmail(String customerEmail) {
+        this.customerEmail = customerEmail;
     }
 }

@@ -41,6 +41,13 @@ public class OrderItemEntity {
     @Column(nullable = false)
     private double subtotal;
 
+    /**
+     * Comma-separated list of applied add-on names for display in invoices and order history.
+     * Example: "Extra Cheese, Extra Spice Sprinkles"
+     */
+    @Column(name = "customizations")
+    private String customizations;
+
     public OrderItemEntity() {
     }
 
@@ -60,6 +67,16 @@ public class OrderItemEntity {
             this.quantity = item.getQuantity();
             this.subtotal = item.getTotalPrice();
         }
+    }
+
+    public OrderItemEntity(String foodName, String foodCategory, double unitPrice, int quantity,
+                           double subtotal, String customizations) {
+        this.foodName = foodName;
+        this.foodCategory = foodCategory;
+        this.unitPrice = unitPrice;
+        this.quantity = quantity;
+        this.subtotal = subtotal;
+        this.customizations = customizations;
     }
 
     public Long getId() {
@@ -116,5 +133,13 @@ public class OrderItemEntity {
 
     public void setSubtotal(double subtotal) {
         this.subtotal = subtotal;
+    }
+
+    public String getCustomizations() {
+        return customizations;
+    }
+
+    public void setCustomizations(String customizations) {
+        this.customizations = customizations;
     }
 }

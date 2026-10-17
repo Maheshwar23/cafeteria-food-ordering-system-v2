@@ -19,6 +19,7 @@ public class OrderResponse {
     private String status;
     private double totalAmount;
     private LocalDateTime createdAt;
+    private String customerEmail;
     private List<OrderItemResponse> items = new ArrayList<>();
 
     public OrderResponse() {
@@ -34,6 +35,7 @@ public class OrderResponse {
             this.status = entity.getStatus() != null ? entity.getStatus().name() : null;
             this.totalAmount = entity.getTotalAmount();
             this.createdAt = entity.getCreatedAt();
+            this.customerEmail = entity.getCustomerEmail();
             if (entity.getItems() != null) {
                 this.items = entity.getItems().stream()
                         .map(OrderItemResponse::new)
@@ -112,5 +114,13 @@ public class OrderResponse {
 
     public void setItems(List<OrderItemResponse> items) {
         this.items = items;
+    }
+
+    public String getCustomerEmail() {
+        return customerEmail;
+    }
+
+    public void setCustomerEmail(String customerEmail) {
+        this.customerEmail = customerEmail;
     }
 }

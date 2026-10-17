@@ -11,4 +11,7 @@ import java.util.List;
 public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
 
     List<OrderEntity> findByStatus(OrderStatus status);
+
+    /** Find all orders placed by a specific customer, case-insensitively. */
+    List<OrderEntity> findByCustomerEmailIgnoreCaseOrderByCreatedAtDesc(String customerEmail);
 }

@@ -81,6 +81,10 @@ public class OrderService {
         // 1. DB lookup & Factory Method & Builder
         Order.Builder builder = new Order.Builder();
 
+        // Track per-item add-on data for persistence
+        record ItemAddOnMeta(String name, String category, double addOnCharge, String customizationsStr) {}
+        java.util.List<ItemAddOnMeta> addOnMetas = new java.util.ArrayList<>();
+
         for (OrderItemRequest itemReq : request.getItems()) {
             if (itemReq.getQuantity() == null || itemReq.getQuantity() <= 0) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Quantity must be greater than zero");
@@ -101,12 +105,43 @@ public class OrderService {
                                     + "\" in category \"" + itemReq.getCategory() + "\""
                     ));
 
+            // ── Validate and price add-ons from server-side registry ──────────────
+            double addOnCharge = 0.0;
+            java.util.List<String> customizationNames = new java.util.ArrayList<>();
+
+            if (itemReq.getAddOns() != null && !itemReq.getAddOns().isEmpty()) {
+                for (String addOnId : itemReq.getAddOns()) {
+                    if (addOnId == null || addOnId.isBlank()) continue;
+
+                    if (!com.cafeteria.model.CustomizationRegistry.isValidAddOn(addOnId)) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                                "Unknown add-on: \"" + addOnId + "\"");
+                    }
+                    if (!com.cafeteria.model.CustomizationRegistry.isAllowedForCategory(addOnId, dbItem.getCategory())) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                                "Add-on \"" + addOnId + "\" is not available for category \""
+                                        + dbItem.getCategory() + "\"");
+                    }
+
+                    com.cafeteria.model.CustomizationRegistry.AddOn addOn =
+                            com.cafeteria.model.CustomizationRegistry.getAddOn(addOnId);
+                    addOnCharge += addOn.price();
+                    customizationNames.add(addOn.name());
+                }
+            }
+
+            String customizationsStr = customizationNames.isEmpty() ? null
+                    : String.join(",", customizationNames);
+
             // Factory Method - instantiate concrete FoodItem subclass
+            // Incorporate add-on charges into the effective unit price used for builder totals
             FoodFactory factory = resolveFactory(itemReq.getCategory());
-            FoodItem domainFoodItem = factory.createFoodItem(dbItem.getName(), dbItem.getPrice());
+            FoodItem domainFoodItem = factory.createFoodItem(dbItem.getName(), dbItem.getPrice() + addOnCharge);
 
             // Add to Order.Builder
             builder.addItem(domainFoodItem, itemReq.getQuantity());
+
+            addOnMetas.add(new ItemAddOnMeta(dbItem.getName(), dbItem.getCategory(), addOnCharge, customizationsStr));
         }
 
         // Builder - finalize the domain Order
@@ -139,6 +174,17 @@ public class OrderService {
         // 6. Persistence - MUST persist result.getFinalPrice(), not raw Order.calculateTotal()
         OrderEntity entity = new OrderEntity(domainOrder);
         entity.setTotalAmount(result.getFinalPrice());
+        if (request.getCustomerEmail() != null && !request.getCustomerEmail().isBlank()) {
+            entity.setCustomerEmail(request.getCustomerEmail().trim().toLowerCase());
+        }
+
+        // Update customizations on each persisted item
+        if (entity.getItems() != null && !addOnMetas.isEmpty()) {
+            for (int i = 0; i < entity.getItems().size() && i < addOnMetas.size(); i++) {
+                entity.getItems().get(i).setCustomizations(addOnMetas.get(i).customizationsStr());
+            }
+        }
+
         OrderEntity savedEntity = orderRepository.save(entity);
 
         String transactionId = (result.getPaymentResult() != null)
@@ -159,9 +205,11 @@ public class OrderService {
                 savedEntity.getAddress(),
                 savedEntity.getDeliveryOption(),
                 savedEntity.getPaymentOption(),
+                savedEntity.getCustomerEmail(),
                 itemResponses
         );
     }
+
 
     /**
      * GET /api/orders/{id}
@@ -173,6 +221,23 @@ public class OrderService {
                         HttpStatus.NOT_FOUND, "Order not found with id: " + id
                 ));
         return new OrderResponse(entity);
+    }
+
+    /**
+     * GET /api/orders?customerEmail=...
+     * Returns all orders for a given customer email, newest first.
+     * Demo note: orders placed without an email are not included.
+     */
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getOrdersByEmail(String customerEmail) {
+        if (customerEmail == null || customerEmail.isBlank()) {
+            return List.of();
+        }
+        return orderRepository
+                .findByCustomerEmailIgnoreCaseOrderByCreatedAtDesc(customerEmail.trim())
+                .stream()
+                .map(OrderResponse::new)
+                .toList();
     }
 
     /**

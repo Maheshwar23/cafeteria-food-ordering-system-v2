@@ -3,11 +3,21 @@ export interface FoodItem {
   name: string;
   price: number;
   category: string;
+  vegetarian?: boolean;
+}
+
+export interface CustomizationOption {
+  id: string;
+  name: string;
+  price: number;
+  description?: string;
 }
 
 export interface CartItem {
   foodItem: FoodItem;
   quantity: number;
+  selectedAddOns?: CustomizationOption[];
+  cartItemId?: string;
 }
 
 export type Category =
@@ -23,11 +33,12 @@ export type Category =
 
 // ─── Order types (mirrors backend DTOs exactly) ───────────────────────────────
 
-/** The three fields sent per line-item in POST /api/orders */
+/** Fields sent per line-item in POST /api/orders */
 export interface OrderItemRequest {
   category: string;
   name: string;
   quantity: number;
+  addOns?: string[];
 }
 
 /** Full POST /api/orders request body */
@@ -39,6 +50,7 @@ export interface PlaceOrderRequest {
   paymentOption: string;
   /** "NONE" | "PERCENTAGE:10" | "FIXED:50" */
   discountStrategy: string;
+  customerEmail?: string;
 }
 
 /** Single line-item in a response */
@@ -48,6 +60,7 @@ export interface OrderItemResponse {
   unitPrice: number;
   quantity: number;
   subtotal: number;
+  customizations?: string[];
 }
 
 /** Response from POST /api/orders */
@@ -62,6 +75,7 @@ export interface PlaceOrderResponse {
   deliveryOption: string | null;
   paymentOption: string | null;
   items: OrderItemResponse[];
+  customerEmail?: string | null;
 }
 
 /** Response from GET /api/orders/{id} */
@@ -75,6 +89,7 @@ export interface OrderResponse {
   totalAmount: number;
   createdAt: string;
   items: OrderItemResponse[];
+  customerEmail?: string | null;
 }
 
 /** Valid order statuses — matches backend OrderStatus enum */

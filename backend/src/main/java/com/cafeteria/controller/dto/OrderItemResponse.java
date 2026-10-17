@@ -2,6 +2,10 @@ package com.cafeteria.controller.dto;
 
 import com.cafeteria.entity.OrderItemEntity;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * Represents a single line item within an order response.
  */
@@ -12,6 +16,7 @@ public class OrderItemResponse {
     private double unitPrice;
     private int quantity;
     private double subtotal;
+    private List<String> customizations = new ArrayList<>();
 
     public OrderItemResponse() {
     }
@@ -31,6 +36,9 @@ public class OrderItemResponse {
             this.unitPrice = entity.getUnitPrice();
             this.quantity = entity.getQuantity();
             this.subtotal = entity.getSubtotal();
+            if (entity.getCustomizations() != null && !entity.getCustomizations().isBlank()) {
+                this.customizations = Arrays.asList(entity.getCustomizations().split(","));
+            }
         }
     }
 
@@ -72,5 +80,13 @@ public class OrderItemResponse {
 
     public void setSubtotal(double subtotal) {
         this.subtotal = subtotal;
+    }
+
+    public List<String> getCustomizations() {
+        return customizations;
+    }
+
+    public void setCustomizations(List<String> customizations) {
+        this.customizations = customizations != null ? customizations : new ArrayList<>();
     }
 }

@@ -28,13 +28,21 @@ public class FoodItemEntity {
     @Column(nullable = false)
     private String category;
 
+    @Column(name = "is_vegetarian", nullable = false)
+    private boolean vegetarian = true;
+
     public FoodItemEntity() {
     }
 
     public FoodItemEntity(String name, double price, String category) {
+        this(name, price, category, true);
+    }
+
+    public FoodItemEntity(String name, double price, String category, boolean vegetarian) {
         this.name = name;
         this.price = price;
         this.category = category;
+        this.vegetarian = vegetarian;
     }
 
     public FoodItemEntity(FoodItem foodItem) {
@@ -42,6 +50,7 @@ public class FoodItemEntity {
             this.name = foodItem.getName();
             this.price = foodItem.getPrice();
             this.category = foodItem.getCategory();
+            this.vegetarian = true;
         }
     }
 
@@ -75,5 +84,13 @@ public class FoodItemEntity {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public boolean isVegetarian() {
+        return vegetarian;
+    }
+
+    public void setVegetarian(boolean vegetarian) {
+        this.vegetarian = vegetarian;
     }
 }

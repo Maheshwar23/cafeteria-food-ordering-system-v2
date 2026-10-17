@@ -6,6 +6,7 @@ interface HeaderProps {
   onCartToggle?: () => void;
   isCartOpen?: boolean;
   onNavigateMenu?: () => void;
+  onNavigateHistory?: () => void;
   currentView?: string;
   /** Email of the currently signed-in user; omit when no session exists. */
   userEmail?: string;
@@ -19,11 +20,13 @@ export const Header: React.FC<HeaderProps> = ({
   onCartToggle,
   isCartOpen = false,
   onNavigateMenu,
+  onNavigateHistory,
   currentView,
   userEmail,
   onLogout,
 }) => {
   const isCartActive = currentView === 'cart';
+  const isHistoryActive = currentView === 'history';
 
   return (
     <header className="site-header" id="site-header">
@@ -69,6 +72,19 @@ export const Header: React.FC<HeaderProps> = ({
                 Sign Out
               </button>
             </div>
+          )}
+
+          {onNavigateHistory && (
+            <button
+              className={`header-history-btn ${isHistoryActive ? 'active' : ''}`}
+              onClick={onNavigateHistory}
+              type="button"
+              id="header-order-history-btn"
+              title="View my past orders"
+              aria-label="View my past orders"
+            >
+              📦 Orders
+            </button>
           )}
 
           <button

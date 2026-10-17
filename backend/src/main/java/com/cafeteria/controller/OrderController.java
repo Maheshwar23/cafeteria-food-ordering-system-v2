@@ -15,16 +15,19 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 /**
  * REST controller for order operations.
  *
- * POST  /api/orders              - place a new order
- * GET   /api/orders/{id}         - retrieve an order by ID
- * PATCH /api/orders/{id}/status  - update an order's status
+ * POST  /api/orders                       - place a new order
+ * GET   /api/orders/{id}                  - retrieve an order by ID
+ * GET   /api/orders?customerEmail=...     - list orders for a customer (order history)
+ * PATCH /api/orders/{id}/status           - update an order's status
  */
 @RestController
 @RequestMapping("/api/orders")
@@ -51,6 +54,18 @@ public class OrderController {
     public ResponseEntity<OrderResponse> getOrder(@PathVariable Long id) {
         OrderResponse response = orderService.getOrder(id);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * List all orders for a specific customer email.
+     * Demo scoping: only orders where customer_email matches (case-insensitive).
+     * Returns an empty list if no orders are found for that email.
+     */
+    @GetMapping
+    public ResponseEntity<List<OrderResponse>> getOrdersByEmail(
+            @RequestParam(required = false) String customerEmail) {
+        List<OrderResponse> orders = orderService.getOrdersByEmail(customerEmail);
+        return ResponseEntity.ok(orders);
     }
 
     /**

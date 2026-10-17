@@ -190,16 +190,29 @@ export const UpiPaymentPage: React.FC<UpiPaymentPageProps> = ({
             <h3 className="upi-details-title">Order Breakdown</h3>
 
             <div className="upi-items-mini-list" id="upi-items-list">
-              {cartItems.map(({ foodItem, quantity }) => (
-                <div key={foodItem.id} className="upi-mini-item-row">
-                  <span className="upi-mini-item-name">
-                    {quantity} × {foodItem.name}
-                  </span>
-                  <span className="upi-mini-item-subtotal">
-                    ₹{(foodItem.price * quantity).toFixed(2)}
-                  </span>
-                </div>
-              ))}
+              {cartItems.map((ci) => {
+                const key = ci.cartItemId || ci.foodItem.id;
+                const addonsTotal = (ci.selectedAddOns || []).reduce((acc, ao) => acc + ao.price, 0);
+                const lineTotal = (ci.foodItem.price + addonsTotal) * ci.quantity;
+
+                return (
+                  <div key={key} className="upi-mini-item-row">
+                    <div className="upi-mini-item-name-group">
+                      <span className="upi-mini-item-name">
+                        {ci.quantity} × {ci.foodItem.name}
+                      </span>
+                      {ci.selectedAddOns && ci.selectedAddOns.length > 0 && (
+                        <span className="upi-item-addon-tag">
+                          (+ {ci.selectedAddOns.map((ao) => ao.name).join(', ')})
+                        </span>
+                      )}
+                    </div>
+                    <span className="upi-mini-item-subtotal">
+                      ₹{lineTotal.toFixed(2)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="upi-pricing-summary">

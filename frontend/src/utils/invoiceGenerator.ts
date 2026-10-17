@@ -128,12 +128,17 @@ export function generateInvoiceHtml(
   const itemRowsHtml = (data.items ?? [])
     .map((item, idx) => {
       const lineTotal = item.subtotal || item.unitPrice * item.quantity;
+      const customSnippet =
+        item.customizations && item.customizations.length > 0
+          ? `<div style="margin-top: 2px; font-size: 0.75rem; color: #ea580c; font-weight: 600;">+ ${item.customizations.join(', ')}</div>`
+          : '';
       return `
         <tr>
           <td class="col-num">${idx + 1}</td>
           <td class="col-desc">
             <div class="item-name">${item.foodName}</div>
             <div class="item-cat">${formatLabel(item.foodCategory)}</div>
+            ${customSnippet}
           </td>
           <td class="col-qty">× ${item.quantity}</td>
           <td class="col-price">₹${item.unitPrice.toFixed(2)}</td>
@@ -816,3 +821,8 @@ export function downloadInvoiceHtmlFile(
     URL.revokeObjectURL(url);
   }, 200);
 }
+
+/**
+ * Export alias for printInvoice to support both generateInvoicePdf and printInvoice names.
+ */
+export const generateInvoicePdf = printInvoice;

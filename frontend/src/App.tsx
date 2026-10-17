@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FoodItem, CartItem, Category, PlaceOrderRequest, PlaceOrderResponse } from './types/food';
 import { fetchFoodItems, placeOrder } from './services/api';
 import { Header } from './components/Header';
@@ -10,6 +10,16 @@ import { Checkout } from './components/Checkout';
 import { UpiPaymentPage } from './components/UpiPaymentPage';
 import { OrderConfirmation } from './components/OrderConfirmation';
 import { OrderTracking } from './components/OrderTracking';
+import { SearchFilterBar } from './components/SearchFilterBar';
+import { FoodDetailModal } from './components/FoodDetailModal';
+import { OrderHistoryPage } from './components/OrderHistoryPage';
+import {
+  DietaryType,
+  SortOption,
+  CustomizationOption,
+  isItemVegetarian,
+  getFoodMetadata,
+} from './utils/foodMetadata';
 import './index.css';
 
 const CATEGORIES: Category[] = [
@@ -25,7 +35,7 @@ const CATEGORIES: Category[] = [
 ];
 
 /** Top-level view the app is currently showing */
-type AppView = 'menu' | 'cart' | 'checkout' | 'payment' | 'confirmation' | 'tracking';
+type AppView = 'menu' | 'cart' | 'checkout' | 'payment' | 'confirmation' | 'tracking' | 'history';
 
 export const App: React.FC = () => {
   // ── Auth state ─────────────────────────────────────────────────────────────
@@ -42,6 +52,10 @@ export const App: React.FC = () => {
     setPlacedOrder(null);
     setPendingUpiRequest(null);
     setSubmitError(null);
+    setSelectedDetailItem(null);
+    setSearchQuery('');
+    setDietaryFilter('ALL');
+    setSortOption('DEFAULT');
     setAppView('menu');
   };
 
@@ -51,6 +65,14 @@ export const App: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+
+  // ── Search & Filter State ──────────────────────────────────────────────────
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [dietaryFilter, setDietaryFilter] = useState<DietaryType>('ALL');
+  const [sortOption, setSortOption] = useState<SortOption>('DEFAULT');
+
+  // ── Food Detail Modal State ────────────────────────────────────────────────
+  const [selectedDetailItem, setSelectedDetailItem] = useState<FoodItem | null>(null);
 
   // ── View state ─────────────────────────────────────────────────────────────
   const [appView, setAppView] = useState<AppView>('menu');
@@ -83,36 +105,100 @@ export const App: React.FC = () => {
     loadFoodItems(selectedCategory);
   }, [selectedCategory, loadFoodItems]);
 
+  // ── Client-Side Filter & Sort Processing ───────────────────────────────────
+  const filteredAndSortedFoodItems = useMemo(() => {
+    let items = [...foodItems];
+
+    // Search query filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      items = items.filter((item) => {
+        const meta = getFoodMetadata(item.name, item.category);
+        const matchName = item.name.toLowerCase().includes(q);
+        const matchCat = item.category.toLowerCase().includes(q);
+        const matchDesc = meta.description.toLowerCase().includes(q);
+        const matchIngr = meta.ingredients.some((ing) => ing.toLowerCase().includes(q));
+        return matchName || matchCat || matchDesc || matchIngr;
+      });
+    }
+
+    // Dietary filter
+    if (dietaryFilter === 'VEG') {
+      items = items.filter((item) => isItemVegetarian(item.name));
+    } else if (dietaryFilter === 'NON_VEG') {
+      items = items.filter((item) => !isItemVegetarian(item.name));
+    }
+
+    // Price sort
+    if (sortOption === 'PRICE_LOW_HIGH') {
+      items.sort((a, b) => a.price - b.price);
+    } else if (sortOption === 'PRICE_HIGH_LOW') {
+      items.sort((a, b) => b.price - a.price);
+    }
+
+    return items;
+  }, [foodItems, searchQuery, dietaryFilter, sortOption]);
+
   // ── Cart operations ────────────────────────────────────────────────────────
-  const handleAddToCart = (item: FoodItem) => {
+  const getCustomCartItemId = (foodItem: FoodItem, addOns?: CustomizationOption[]): string => {
+    if (!addOns || addOns.length === 0) {
+      return `${foodItem.id}`;
+    }
+    const sortedAddOns = [...addOns].map((ao) => ao.id).sort().join('_');
+    return `${foodItem.id}__${sortedAddOns}`;
+  };
+
+  const handleAddToCartWithCustomizations = (
+    item: FoodItem,
+    addOns: CustomizationOption[] = [],
+    quantity: number = 1
+  ) => {
+    const cartItemId = getCustomCartItemId(item, addOns);
     setCartItems((prev) => {
-      const existing = prev.find((ci) => ci.foodItem.id === item.id);
-      if (existing) {
-        return prev.map((ci) =>
-          ci.foodItem.id === item.id
-            ? { ...ci, quantity: ci.quantity + 1 }
-            : ci
-        );
+      const existingIndex = prev.findIndex(
+        (ci) => (ci.cartItemId || String(ci.foodItem.id)) === cartItemId
+      );
+      if (existingIndex > -1) {
+        const updated = [...prev];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          quantity: updated[existingIndex].quantity + quantity,
+        };
+        return updated;
       }
-      return [...prev, { foodItem: item, quantity: 1 }];
+      return [
+        ...prev,
+        {
+          foodItem: item,
+          quantity,
+          selectedAddOns: addOns.length > 0 ? addOns : undefined,
+          cartItemId,
+        },
+      ];
     });
   };
 
-  const handleIncreaseQuantity = (foodItemId: number) => {
+  const handleAddToCart = (item: FoodItem) => {
+    handleAddToCartWithCustomizations(item, [], 1);
+  };
+
+  const handleIncreaseQuantity = (identifier: string | number) => {
+    const idStr = String(identifier);
     setCartItems((prev) =>
       prev.map((ci) =>
-        ci.foodItem.id === foodItemId
+        (ci.cartItemId || String(ci.foodItem.id)) === idStr
           ? { ...ci, quantity: ci.quantity + 1 }
           : ci
       )
     );
   };
 
-  const handleDecreaseQuantity = (foodItemId: number) => {
+  const handleDecreaseQuantity = (identifier: string | number) => {
+    const idStr = String(identifier);
     setCartItems((prev) =>
       prev
         .map((ci) =>
-          ci.foodItem.id === foodItemId
+          (ci.cartItemId || String(ci.foodItem.id)) === idStr
             ? { ...ci, quantity: ci.quantity - 1 }
             : ci
         )
@@ -120,19 +206,33 @@ export const App: React.FC = () => {
     );
   };
 
-  const handleRemoveItem = (foodItemId: number) => {
-    setCartItems((prev) => prev.filter((ci) => ci.foodItem.id !== foodItemId));
+  const handleRemoveItem = (identifier: string | number) => {
+    const idStr = String(identifier);
+    setCartItems((prev) =>
+      prev.filter((ci) => (ci.cartItemId || String(ci.foodItem.id)) !== idStr)
+    );
   };
 
   const handleClearCart = () => {
     setCartItems([]);
   };
 
+  const handleOrderAgain = (reorderedItems: CartItem[]) => {
+    for (const item of reorderedItems) {
+      handleAddToCartWithCustomizations(
+        item.foodItem,
+        item.selectedAddOns || [],
+        item.quantity
+      );
+    }
+    setAppView('cart');
+  };
+
   const totalCartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const cartSubtotal = cartItems.reduce(
-    (sum, item) => sum + item.foodItem.price * item.quantity,
-    0
-  );
+  const cartSubtotal = cartItems.reduce((sum, item) => {
+    const addonsTotal = (item.selectedAddOns || []).reduce((acc, ao) => acc + ao.price, 0);
+    return sum + (item.foodItem.price + addonsTotal) * item.quantity;
+  }, 0);
 
   // ── Checkout / order submission ────────────────────────────────────────────
   const handleProceedToCheckout = () => {
@@ -188,10 +288,23 @@ export const App: React.FC = () => {
         cartTotal={cartSubtotal}
         onCartToggle={() => setAppView('cart')}
         onNavigateMenu={() => setAppView('menu')}
+        onNavigateHistory={() => setAppView('history')}
         currentView={appView}
         userEmail={loggedInUser}
         onLogout={handleLogout}
       />
+
+      {/* ── Order History Page ──────────────────────────────── */}
+      {appView === 'history' && (
+        <main className="main-content">
+          <OrderHistoryPage
+            customerEmail={loggedInUser}
+            currentFoodItems={foodItems}
+            onBackToMenu={() => setAppView('menu')}
+            onOrderAgain={handleOrderAgain}
+          />
+        </main>
+      )}
 
       {/* ── Dedicated Cart Page ──────────────────────────────── */}
       {appView === 'cart' && (
@@ -212,6 +325,7 @@ export const App: React.FC = () => {
       {appView === 'checkout' && (
         <Checkout
           cartItems={cartItems}
+          customerEmail={loggedInUser}
           onSubmit={handlePlaceOrder}
           onProceedToUpi={(req) => {
             setPendingUpiRequest(req);
@@ -289,6 +403,28 @@ export const App: React.FC = () => {
                 />
               </div>
 
+              {/* Search, Dietary, and Price Sort Control Bar */}
+              <SearchFilterBar
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                dietaryFilter={dietaryFilter}
+                onDietaryChange={setDietaryFilter}
+                sortOption={sortOption}
+                onSortChange={setSortOption}
+                onResetFilters={() => {
+                  setSearchQuery('');
+                  setDietaryFilter('ALL');
+                  setSortOption('DEFAULT');
+                }}
+                totalFilteredCount={filteredAndSortedFoodItems.length}
+                totalAvailableCount={foodItems.length}
+                isFiltered={
+                  searchQuery.trim().length > 0 ||
+                  dietaryFilter !== 'ALL' ||
+                  sortOption !== 'DEFAULT'
+                }
+              />
+
               {/* Loading State */}
               {loading && (
                 <div className="loading-state" id="loading-spinner">
@@ -317,25 +453,46 @@ export const App: React.FC = () => {
               )}
 
               {/* Empty State */}
-              {!loading && !error && foodItems.length === 0 && (
+              {!loading && !error && filteredAndSortedFoodItems.length === 0 && (
                 <div className="empty-menu" id="empty-menu-state">
                   <span className="empty-menu-icon">🍽️</span>
-                  <h3>No items found</h3>
-                  <p>No food items currently available in category "{selectedCategory}".</p>
+                  <h3>No items match your filters</h3>
+                  <p>
+                    No food items found matching "{searchQuery}"
+                    {dietaryFilter !== 'ALL' ? ` (${dietaryFilter === 'VEG' ? 'Vegetarian' : 'Non-Vegetarian'})` : ''}.
+                    Try adjusting your search keywords or resetting filters.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn-browse-menu"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setDietaryFilter('ALL');
+                      setSortOption('DEFAULT');
+                      setSelectedCategory('All');
+                    }}
+                    id="reset-all-filters-btn"
+                  >
+                    🔄 Clear All Filters
+                  </button>
                 </div>
               )}
 
               {/* Food Grid */}
-              {!loading && !error && foodItems.length > 0 && (
+              {!loading && !error && filteredAndSortedFoodItems.length > 0 && (
                 <div className="food-grid" id="food-items-grid">
-                  {foodItems.map((item) => {
-                    const inCart = cartItems.find((ci) => ci.foodItem.id === item.id);
+                  {filteredAndSortedFoodItems.map((item) => {
+                    const inCartCount = cartItems
+                      .filter((ci) => ci.foodItem.id === item.id)
+                      .reduce((sum, ci) => sum + ci.quantity, 0);
+
                     return (
                       <FoodCard
                         key={item.id}
                         item={item}
-                        cartQuantity={inCart ? inCart.quantity : 0}
+                        cartQuantity={inCartCount}
                         onAddToCart={handleAddToCart}
+                        onOpenDetails={(foodItem) => setSelectedDetailItem(foodItem)}
                       />
                     );
                   })}
@@ -362,6 +519,21 @@ export const App: React.FC = () => {
             </div>
           )}
         </main>
+      )}
+
+      {/* ── Food Customization & Detail Modal ─────────────────── */}
+      {selectedDetailItem && (
+        <FoodDetailModal
+          item={selectedDetailItem}
+          currentCartQuantity={cartItems
+            .filter((ci) => ci.foodItem.id === selectedDetailItem.id)
+            .reduce((sum, ci) => sum + ci.quantity, 0)}
+          onClose={() => setSelectedDetailItem(null)}
+          onAddToCart={(item, addOns, qty) => {
+            handleAddToCartWithCustomizations(item, addOns, qty);
+            setSelectedDetailItem(null);
+          }}
+        />
       )}
 
       <footer className="site-footer">

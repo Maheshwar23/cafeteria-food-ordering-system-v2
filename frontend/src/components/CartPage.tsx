@@ -4,9 +4,9 @@ import { getFoodImageUrl, DEFAULT_FOOD_IMAGE } from '../utils/imageMap';
 
 interface CartPageProps {
   items: CartItem[];
-  onIncreaseQuantity: (foodItemId: number) => void;
-  onDecreaseQuantity: (foodItemId: number) => void;
-  onRemoveItem: (foodItemId: number) => void;
+  onIncreaseQuantity: (identifier: string | number) => void;
+  onDecreaseQuantity: (identifier: string | number) => void;
+  onRemoveItem: (identifier: string | number) => void;
   onClearCart: () => void;
   onProceedToCheckout: () => void;
   onContinueShopping: () => void;
@@ -24,10 +24,10 @@ export const CartPage: React.FC<CartPageProps> = ({
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const totalItemCount = items.reduce((sum, item) => sum + item.quantity, 0);
-  const subtotal = items.reduce(
-    (sum, item) => sum + item.foodItem.price * item.quantity,
-    0
-  );
+  const subtotal = items.reduce((sum, item) => {
+    const addonsTotal = (item.selectedAddOns || []).reduce((acc, ao) => acc + ao.price, 0);
+    return sum + (item.foodItem.price + addonsTotal) * item.quantity;
+  }, 0);
 
   const handleConfirmClear = () => {
     onClearCart();
@@ -89,15 +89,19 @@ export const CartPage: React.FC<CartPageProps> = ({
             </div>
 
             <div className="cart-page-items-list" id="cart-page-items-list">
-              {items.map(({ foodItem, quantity }) => {
-                const itemTotal = foodItem.price * quantity;
+              {items.map((cartItem) => {
+                const { foodItem, quantity, selectedAddOns, cartItemId } = cartItem;
+                const itemId = cartItemId || foodItem.id;
+                const addonsTotal = (selectedAddOns || []).reduce((acc, ao) => acc + ao.price, 0);
+                const unitPrice = foodItem.price + addonsTotal;
+                const itemTotal = unitPrice * quantity;
                 const imageUrl = getFoodImageUrl(foodItem.name);
 
                 return (
                   <div
-                    key={foodItem.id}
+                    key={itemId}
                     className="cart-page-item-card"
-                    id={`cart-page-item-${foodItem.id}`}
+                    id={`cart-page-item-${itemId}`}
                   >
                     {/* Food Image */}
                     <div className="cart-item-image-wrapper">
@@ -115,7 +119,16 @@ export const CartPage: React.FC<CartPageProps> = ({
                     <div className="cart-item-details">
                       <div className="cart-item-category-tag">{foodItem.category}</div>
                       <h4 className="cart-item-card-name">{foodItem.name}</h4>
-                      <div className="cart-item-card-price">₹{foodItem.price.toFixed(2)} each</div>
+                      <div className="cart-item-card-price">₹{unitPrice.toFixed(2)} each</div>
+                      {selectedAddOns && selectedAddOns.length > 0 && (
+                        <div className="cart-item-addons-list">
+                          {selectedAddOns.map((ao) => (
+                            <span key={ao.id} className="cart-addon-chip">
+                              + {ao.name} (₹{ao.price.toFixed(2)})
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Quantity controls */}
@@ -124,24 +137,24 @@ export const CartPage: React.FC<CartPageProps> = ({
                         <button
                           type="button"
                           className="cart-qty-btn"
-                          onClick={() => onDecreaseQuantity(foodItem.id)}
+                          onClick={() => onDecreaseQuantity(itemId)}
                           aria-label={`Decrease quantity of ${foodItem.name}`}
-                          id={`cart-decrease-${foodItem.id}`}
+                          id={`cart-decrease-${itemId}`}
                         >
                           −
                         </button>
                         <span
                           className="cart-qty-number"
-                          id={`cart-qty-val-${foodItem.id}`}
+                          id={`cart-qty-val-${itemId}`}
                         >
                           {quantity}
                         </span>
                         <button
                           type="button"
                           className="cart-qty-btn"
-                          onClick={() => onIncreaseQuantity(foodItem.id)}
+                          onClick={() => onIncreaseQuantity(itemId)}
                           aria-label={`Increase quantity of ${foodItem.name}`}
-                          id={`cart-increase-${foodItem.id}`}
+                          id={`cart-increase-${itemId}`}
                         >
                           ＋
                         </button>
@@ -150,16 +163,16 @@ export const CartPage: React.FC<CartPageProps> = ({
 
                     {/* Line total & remove */}
                     <div className="cart-item-subtotal-section">
-                      <span className="cart-item-line-total" id={`cart-line-total-${foodItem.id}`}>
+                      <span className="cart-item-line-total" id={`cart-line-total-${itemId}`}>
                         ₹{itemTotal.toFixed(2)}
                       </span>
                       <button
                         type="button"
                         className="cart-item-remove-btn"
-                        onClick={() => onRemoveItem(foodItem.id)}
+                        onClick={() => onRemoveItem(itemId)}
                         aria-label={`Remove ${foodItem.name} from cart`}
                         title="Remove item"
-                        id={`cart-remove-item-${foodItem.id}`}
+                        id={`cart-remove-item-${itemId}`}
                       >
                         Remove
                       </button>

@@ -8,6 +8,7 @@ interface CheckoutProps {
   onCancel: () => void;
   isSubmitting: boolean;
   submitError: string | null;
+  customerEmail?: string | null;
 }
 
 const DEFAULT_FORM: CheckoutForm = {
@@ -32,14 +33,15 @@ export const Checkout: React.FC<CheckoutProps> = ({
   onCancel,
   isSubmitting,
   submitError,
+  customerEmail,
 }) => {
   const [form, setForm] = useState<CheckoutForm>(DEFAULT_FORM);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  const subtotal = cartItems.reduce(
-    (sum, ci) => sum + ci.foodItem.price * ci.quantity,
-    0
-  );
+  const subtotal = cartItems.reduce((sum, ci) => {
+    const addonsTotal = (ci.selectedAddOns || []).reduce((acc, ao) => acc + ao.price, 0);
+    return sum + (ci.foodItem.price + addonsTotal) * ci.quantity;
+  }, 0);
 
   const handleChange = <K extends keyof CheckoutForm>(
     key: K,
@@ -75,10 +77,15 @@ export const Checkout: React.FC<CheckoutProps> = ({
         category: ci.foodItem.category,
         name: ci.foodItem.name,
         quantity: ci.quantity,
+        addOns:
+          ci.selectedAddOns && ci.selectedAddOns.length > 0
+            ? ci.selectedAddOns.map((ao) => ao.id)
+            : undefined,
       })),
       deliveryOption: form.deliveryOption,
       paymentOption: form.paymentOption === 'CASH' ? 'Cash (MockPay)' : form.paymentOption,
       discountStrategy: form.discountStrategy,
+      customerEmail: customerEmail || undefined,
       ...(form.deliveryOption === 'DELIVERY' && form.address.trim()
         ? { address: form.address.trim() }
         : {}),
@@ -122,16 +129,29 @@ export const Checkout: React.FC<CheckoutProps> = ({
           <section className="checkout-section">
             <h3 className="checkout-section-title">Order Summary</h3>
             <div className="checkout-items-list">
-              {cartItems.map(({ foodItem, quantity }) => (
-                <div key={foodItem.id} className="checkout-item-row">
-                  <span className="checkout-item-name">
-                    {quantity} × {foodItem.name}
-                  </span>
-                  <span className="checkout-item-price">
-                    ₹{(foodItem.price * quantity).toFixed(2)}
-                  </span>
-                </div>
-              ))}
+              {cartItems.map((ci) => {
+                const key = ci.cartItemId || ci.foodItem.id;
+                const addonsTotal = (ci.selectedAddOns || []).reduce((acc, ao) => acc + ao.price, 0);
+                const lineTotal = (ci.foodItem.price + addonsTotal) * ci.quantity;
+
+                return (
+                  <div key={key} className="checkout-item-row">
+                    <div className="checkout-item-info-col">
+                      <span className="checkout-item-name">
+                        {ci.quantity} × {ci.foodItem.name}
+                      </span>
+                      {ci.selectedAddOns && ci.selectedAddOns.length > 0 && (
+                        <span className="checkout-item-addons-text">
+                          + {ci.selectedAddOns.map((ao) => ao.name).join(', ')}
+                        </span>
+                      )}
+                    </div>
+                    <span className="checkout-item-price">
+                      ₹{lineTotal.toFixed(2)}
+                    </span>
+                  </div>
+                );
+              })}
               <div className="checkout-item-row checkout-subtotal-row">
                 <span className="checkout-item-name">Est. Subtotal</span>
                 <span className="checkout-item-price checkout-subtotal-val">
