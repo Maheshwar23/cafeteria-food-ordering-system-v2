@@ -4,6 +4,7 @@ import { CartItem, CheckoutForm, PlaceOrderRequest } from '../types/food';
 interface CheckoutProps {
   cartItems: CartItem[];
   onSubmit: (request: PlaceOrderRequest) => Promise<void>;
+  onProceedToUpi?: (request: PlaceOrderRequest) => void;
   onCancel: () => void;
   isSubmitting: boolean;
   submitError: string | null;
@@ -27,6 +28,7 @@ function formatDiscount(strategy: string): string {
 export const Checkout: React.FC<CheckoutProps> = ({
   cartItems,
   onSubmit,
+  onProceedToUpi,
   onCancel,
   isSubmitting,
   submitError,
@@ -84,6 +86,11 @@ export const Checkout: React.FC<CheckoutProps> = ({
         ? { specialInstructions: form.specialInstructions.trim() }
         : {}),
     };
+
+    if (form.paymentOption === 'UPI' && onProceedToUpi) {
+      onProceedToUpi(request);
+      return;
+    }
 
     await onSubmit(request);
   };
@@ -314,6 +321,8 @@ export const Checkout: React.FC<CheckoutProps> = ({
                     <span className="spinner-sm" />
                     Placing Order…
                   </span>
+                ) : form.paymentOption === 'UPI' ? (
+                  '📱 Proceed to UPI Payment →'
                 ) : (
                   '✓ Place Order'
                 )}

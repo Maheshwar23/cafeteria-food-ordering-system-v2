@@ -5,8 +5,9 @@ import { Header } from './components/Header';
 import { LoginPage } from './components/LoginPage';
 import { CategoryFilter } from './components/CategoryFilter';
 import { FoodCard } from './components/FoodCard';
-import { Cart } from './components/Cart';
+import { CartPage } from './components/CartPage';
 import { Checkout } from './components/Checkout';
+import { UpiPaymentPage } from './components/UpiPaymentPage';
 import { OrderConfirmation } from './components/OrderConfirmation';
 import { OrderTracking } from './components/OrderTracking';
 import './index.css';
@@ -24,7 +25,7 @@ const CATEGORIES: Category[] = [
 ];
 
 /** Top-level view the app is currently showing */
-type AppView = 'menu' | 'checkout' | 'confirmation' | 'tracking';
+type AppView = 'menu' | 'cart' | 'checkout' | 'payment' | 'confirmation' | 'tracking';
 
 export const App: React.FC = () => {
   // ── Auth state ─────────────────────────────────────────────────────────────
@@ -39,6 +40,7 @@ export const App: React.FC = () => {
     setLoggedInUser(null);
     setCartItems([]);
     setPlacedOrder(null);
+    setPendingUpiRequest(null);
     setSubmitError(null);
     setAppView('menu');
   };
@@ -49,7 +51,6 @@ export const App: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [isMobileCartOpen, setIsMobileCartOpen] = useState<boolean>(false);
 
   // ── View state ─────────────────────────────────────────────────────────────
   const [appView, setAppView] = useState<AppView>('menu');
@@ -58,6 +59,7 @@ export const App: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [placedOrder, setPlacedOrder] = useState<PlaceOrderResponse | null>(null);
+  const [pendingUpiRequest, setPendingUpiRequest] = useState<PlaceOrderRequest | null>(null);
 
   // ── Food items loading ─────────────────────────────────────────────────────
   const loadFoodItems = useCallback(async (category: Category) => {
@@ -127,18 +129,21 @@ export const App: React.FC = () => {
   };
 
   const totalCartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const cartSubtotal = cartItems.reduce(
+    (sum, item) => sum + item.foodItem.price * item.quantity,
+    0
+  );
 
   // ── Checkout / order submission ────────────────────────────────────────────
   const handleProceedToCheckout = () => {
     if (cartItems.length === 0) return;
     setSubmitError(null);
     setAppView('checkout');
-    setIsMobileCartOpen(false);
   };
 
   const handleCancelCheckout = () => {
     setSubmitError(null);
-    setAppView('menu');
+    setAppView('cart');
   };
 
   const handlePlaceOrder = async (request: PlaceOrderRequest) => {
@@ -148,6 +153,7 @@ export const App: React.FC = () => {
       const response = await placeOrder(request);
       setPlacedOrder(response);
       setCartItems([]); // clear cart on success
+      setPendingUpiRequest(null);
       setAppView('confirmation');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Order submission failed.';
@@ -163,6 +169,7 @@ export const App: React.FC = () => {
 
   const handleBackToMenu = () => {
     setPlacedOrder(null);
+    setPendingUpiRequest(null);
     setSubmitError(null);
     setAppView('menu');
   };
@@ -178,21 +185,63 @@ export const App: React.FC = () => {
     <div className="app-shell">
       <Header
         cartItemCount={totalCartCount}
-        onCartToggle={() => setIsMobileCartOpen((prev) => !prev)}
-        isCartOpen={isMobileCartOpen}
+        cartTotal={cartSubtotal}
+        onCartToggle={() => setAppView('cart')}
+        onNavigateMenu={() => setAppView('menu')}
+        currentView={appView}
         userEmail={loggedInUser}
         onLogout={handleLogout}
       />
+
+      {/* ── Dedicated Cart Page ──────────────────────────────── */}
+      {appView === 'cart' && (
+        <main className="main-content">
+          <CartPage
+            items={cartItems}
+            onIncreaseQuantity={handleIncreaseQuantity}
+            onDecreaseQuantity={handleDecreaseQuantity}
+            onRemoveItem={handleRemoveItem}
+            onClearCart={handleClearCart}
+            onProceedToCheckout={handleProceedToCheckout}
+            onContinueShopping={() => setAppView('menu')}
+          />
+        </main>
+      )}
 
       {/* ── Checkout overlay ─────────────────────────────────── */}
       {appView === 'checkout' && (
         <Checkout
           cartItems={cartItems}
           onSubmit={handlePlaceOrder}
+          onProceedToUpi={(req) => {
+            setPendingUpiRequest(req);
+            setAppView('payment');
+          }}
           onCancel={handleCancelCheckout}
           isSubmitting={isSubmitting}
           submitError={submitError}
         />
+      )}
+
+      {/* ── UPI Demo Payment Screen ──────────────────────────── */}
+      {appView === 'payment' && pendingUpiRequest && (
+        <main className="main-content">
+          <UpiPaymentPage
+            orderRequest={pendingUpiRequest}
+            cartItems={cartItems}
+            subtotal={cartSubtotal}
+            customerEmail={loggedInUser}
+            onPaymentSuccess={(response) => {
+              setPlacedOrder(response);
+              setCartItems([]);
+              setPendingUpiRequest(null);
+              setAppView('confirmation');
+            }}
+            onCancel={() => {
+              setAppView('checkout');
+            }}
+          />
+        </main>
       )}
 
       {/* ── Order Confirmation overlay ───────────────────────── */}
@@ -216,10 +265,10 @@ export const App: React.FC = () => {
         </main>
       )}
 
-      {/* ── Main menu + cart ─────────────────────────────────── */}
+      {/* ── Main menu catalog ────────────────────────────────── */}
       {appView === 'menu' && (
         <main className="main-content">
-          <div className="layout-grid">
+          <div className="menu-page-container">
             {/* Menu Browsing Section */}
             <section className="menu-section" aria-label="Cafeteria Menu">
               <div className="menu-header">
@@ -293,21 +342,25 @@ export const App: React.FC = () => {
                 </div>
               )}
             </section>
-
-            {/* Cart Sidebar */}
-            <section className="cart-section">
-              <Cart
-                items={cartItems}
-                onIncreaseQuantity={handleIncreaseQuantity}
-                onDecreaseQuantity={handleDecreaseQuantity}
-                onRemoveItem={handleRemoveItem}
-                onClearCart={handleClearCart}
-                onProceedToCheckout={handleProceedToCheckout}
-                isOpen={isMobileCartOpen}
-                onClose={() => setIsMobileCartOpen(false)}
-              />
-            </section>
           </div>
+
+          {/* Floating Cart Indicator on Menu when items present */}
+          {cartItems.length > 0 && (
+            <div className="floating-cart-pill" id="floating-cart-bar">
+              <div className="floating-cart-text">
+                <span className="floating-cart-count">🛒 {totalCartCount} items</span>
+                <span className="floating-cart-subtotal">₹{cartSubtotal.toFixed(2)}</span>
+              </div>
+              <button
+                type="button"
+                className="btn-floating-cart-action"
+                onClick={() => setAppView('cart')}
+                id="floating-view-cart-btn"
+              >
+                View Cart →
+              </button>
+            </div>
+          )}
         </main>
       )}
 

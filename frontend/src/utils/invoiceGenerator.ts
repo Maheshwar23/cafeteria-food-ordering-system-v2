@@ -74,7 +74,7 @@ function getPaymentInfo(data: NormalizedInvoiceData): { method: string; status: 
     } else if (rawMethod.toUpperCase() === 'CARD') {
       method = 'Credit / Debit Card';
     } else if (rawMethod.toUpperCase() === 'UPI') {
-      method = 'UPI';
+      method = 'UPI (Simulated Demo Payment)';
     } else {
       method = formatLabel(rawMethod);
     }
@@ -83,7 +83,11 @@ function getPaymentInfo(data: NormalizedInvoiceData): { method: string; status: 
   // Determine genuine status
   let status = 'Not Verified';
   if (data.transactionId) {
-    status = `Processed & Approved (Txn ID: ${data.transactionId})`;
+    if (rawMethod && rawMethod.toUpperCase() === 'UPI') {
+      status = `Simulated Payment Approved (Demo Ref: ${data.transactionId})`;
+    } else {
+      status = `Processed & Approved (Txn ID: ${data.transactionId})`;
+    }
   } else if (rawMethod && rawMethod.toLowerCase().includes('cash')) {
     status = 'Pay at Counter / Upon Delivery';
   } else if (rawMethod) {
